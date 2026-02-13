@@ -1,0 +1,50 @@
+# Environment and secrets
+.env
+
+# Virtual environments
+venv/
+.venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Type checking
+.mypy_cache/
+
+# Testing and coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Ruff
+.ruff_cache/
+
+# Hypothesis
+.hypothesis/
+
+# Logs
+logs/*.json
+logs/*.jsonl
+logs/*.lock
+logs/*.gz
+logs/*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# uv lock file
+uv.lock
