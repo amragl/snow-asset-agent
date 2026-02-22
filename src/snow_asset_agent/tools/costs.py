@@ -12,6 +12,11 @@ from typing import Any
 
 from snow_asset_agent.client import ServiceNowClient
 from snow_asset_agent.config import get_config
+from snow_asset_agent.exceptions import (
+    ServiceNowAuthError,
+    ServiceNowError,
+    ServiceNowRateLimitError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +89,15 @@ def calculate_asset_costs(
             "asset_count": len(asset_costs),
             "assets": asset_costs,
         }
+    except ServiceNowAuthError as exc:
+        logger.exception("calculate_asset_costs failed: auth error")
+        return {"error": str(exc), "error_code": "SN_AUTH_ERROR"}
+    except ServiceNowRateLimitError as exc:
+        logger.exception("calculate_asset_costs failed: rate limited")
+        return {"error": str(exc), "error_code": "SN_RATE_LIMIT"}
+    except ServiceNowError as exc:
+        logger.exception("calculate_asset_costs failed")
+        return {"error": str(exc), "error_code": getattr(exc, 'error_code', 'SN_QUERY_ERROR') or "SN_QUERY_ERROR"}
     except Exception as exc:
         logger.exception("calculate_asset_costs failed")
         return {"error": str(exc), "error_code": "SN_QUERY_ERROR"}

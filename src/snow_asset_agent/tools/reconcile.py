@@ -11,6 +11,11 @@ from typing import Any
 
 from snow_asset_agent.client import ServiceNowClient
 from snow_asset_agent.config import get_config
+from snow_asset_agent.exceptions import (
+    ServiceNowAuthError,
+    ServiceNowError,
+    ServiceNowRateLimitError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +94,15 @@ def reconcile_assets_to_cis(
             "unmatched_cis": unmatched_cis,
             "unmatched_cis_count": len(unmatched_cis),
         }
+    except ServiceNowAuthError as exc:
+        logger.exception("reconcile_assets_to_cis failed: auth error")
+        return {"error": str(exc), "error_code": "SN_AUTH_ERROR"}
+    except ServiceNowRateLimitError as exc:
+        logger.exception("reconcile_assets_to_cis failed: rate limited")
+        return {"error": str(exc), "error_code": "SN_RATE_LIMIT"}
+    except ServiceNowError as exc:
+        logger.exception("reconcile_assets_to_cis failed")
+        return {"error": str(exc), "error_code": getattr(exc, 'error_code', 'SN_QUERY_ERROR') or "SN_QUERY_ERROR"}
     except Exception as exc:
         logger.exception("reconcile_assets_to_cis failed")
         return {"error": str(exc), "error_code": "SN_QUERY_ERROR"}
