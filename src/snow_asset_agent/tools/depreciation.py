@@ -12,6 +12,11 @@ from typing import Any
 
 from snow_asset_agent.client import ServiceNowClient
 from snow_asset_agent.config import get_config
+from snow_asset_agent.exceptions import (
+    ServiceNowAuthError,
+    ServiceNowError,
+    ServiceNowRateLimitError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +111,15 @@ def track_asset_depreciation(
             "count": len(items),
             "total_accumulated_depreciation": round(total_depreciation, 2),
         }
+    except ServiceNowAuthError as exc:
+        logger.exception("track_asset_depreciation failed: auth error")
+        return {"error": str(exc), "error_code": "SN_AUTH_ERROR"}
+    except ServiceNowRateLimitError as exc:
+        logger.exception("track_asset_depreciation failed: rate limited")
+        return {"error": str(exc), "error_code": "SN_RATE_LIMIT"}
+    except ServiceNowError as exc:
+        logger.exception("track_asset_depreciation failed")
+        return {"error": str(exc), "error_code": getattr(exc, 'error_code', 'SN_QUERY_ERROR') or "SN_QUERY_ERROR"}
     except Exception as exc:
         logger.exception("track_asset_depreciation failed")
         return {"error": str(exc), "error_code": "SN_QUERY_ERROR"}

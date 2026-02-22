@@ -11,6 +11,11 @@ from typing import Any
 
 from snow_asset_agent.client import ServiceNowClient
 from snow_asset_agent.config import get_config
+from snow_asset_agent.exceptions import (
+    ServiceNowAuthError,
+    ServiceNowError,
+    ServiceNowRateLimitError,
+)
 from snow_asset_agent.models import SoftwareLicense
 
 logger = logging.getLogger(__name__)
@@ -59,6 +64,15 @@ def query_software_licenses(
         records = _client.get_records(TABLE, query=query, limit=limit)
         licenses = [SoftwareLicense.from_snow_record(r).model_dump(mode="json") for r in records]
         return {"licenses": licenses, "count": len(licenses)}
+    except ServiceNowAuthError as exc:
+        logger.exception("query_software_licenses failed: auth error")
+        return {"error": str(exc), "error_code": "SN_AUTH_ERROR"}
+    except ServiceNowRateLimitError as exc:
+        logger.exception("query_software_licenses failed: rate limited")
+        return {"error": str(exc), "error_code": "SN_RATE_LIMIT"}
+    except ServiceNowError as exc:
+        logger.exception("query_software_licenses failed")
+        return {"error": str(exc), "error_code": getattr(exc, 'error_code', 'SN_QUERY_ERROR') or "SN_QUERY_ERROR"}
     except Exception as exc:
         logger.exception("query_software_licenses failed")
         return {"error": str(exc), "error_code": "SN_QUERY_ERROR"}

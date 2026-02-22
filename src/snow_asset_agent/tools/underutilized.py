@@ -12,6 +12,11 @@ from typing import Any
 
 from snow_asset_agent.client import ServiceNowClient
 from snow_asset_agent.config import get_config
+from snow_asset_agent.exceptions import (
+    ServiceNowAuthError,
+    ServiceNowError,
+    ServiceNowRateLimitError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +84,15 @@ def find_underutilized_assets(
             "count": len(items),
             "estimated_waste_cost": round(total_waste, 2),
         }
+    except ServiceNowAuthError as exc:
+        logger.exception("find_underutilized_assets failed: auth error")
+        return {"error": str(exc), "error_code": "SN_AUTH_ERROR"}
+    except ServiceNowRateLimitError as exc:
+        logger.exception("find_underutilized_assets failed: rate limited")
+        return {"error": str(exc), "error_code": "SN_RATE_LIMIT"}
+    except ServiceNowError as exc:
+        logger.exception("find_underutilized_assets failed")
+        return {"error": str(exc), "error_code": getattr(exc, 'error_code', 'SN_QUERY_ERROR') or "SN_QUERY_ERROR"}
     except Exception as exc:
         logger.exception("find_underutilized_assets failed")
         return {"error": str(exc), "error_code": "SN_QUERY_ERROR"}

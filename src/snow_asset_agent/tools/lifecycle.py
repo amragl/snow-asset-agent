@@ -12,6 +12,11 @@ from typing import Any
 
 from snow_asset_agent.client import ServiceNowClient
 from snow_asset_agent.config import get_config
+from snow_asset_agent.exceptions import (
+    ServiceNowAuthError,
+    ServiceNowError,
+    ServiceNowRateLimitError,
+)
 from snow_asset_agent.models import AssetLifecycle
 
 logger = logging.getLogger(__name__)
@@ -70,6 +75,15 @@ def get_asset_lifecycle(
         days_in_stage = _days_since(record.get("sys_updated_on"))
         lifecycle = AssetLifecycle.from_snow_record(record, stage=stage, days_in_stage=days_in_stage)
         return {"lifecycle": lifecycle.model_dump(mode="json")}
+    except ServiceNowAuthError as exc:
+        logger.exception("get_asset_lifecycle failed: auth error")
+        return {"error": str(exc), "error_code": "SN_AUTH_ERROR"}
+    except ServiceNowRateLimitError as exc:
+        logger.exception("get_asset_lifecycle failed: rate limited")
+        return {"error": str(exc), "error_code": "SN_RATE_LIMIT"}
+    except ServiceNowError as exc:
+        logger.exception("get_asset_lifecycle failed")
+        return {"error": str(exc), "error_code": getattr(exc, 'error_code', 'SN_QUERY_ERROR') or "SN_QUERY_ERROR"}
     except Exception as exc:
         logger.exception("get_asset_lifecycle failed")
         return {"error": str(exc), "error_code": "SN_QUERY_ERROR"}

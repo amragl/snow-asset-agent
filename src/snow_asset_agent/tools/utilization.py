@@ -10,6 +10,11 @@ from typing import Any
 
 from snow_asset_agent.client import ServiceNowClient
 from snow_asset_agent.config import get_config
+from snow_asset_agent.exceptions import (
+    ServiceNowAuthError,
+    ServiceNowError,
+    ServiceNowRateLimitError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +78,15 @@ def get_license_utilization(
         items.sort(key=lambda x: x["utilization_pct"], reverse=True)
 
         return {"utilization": items, "count": len(items)}
+    except ServiceNowAuthError as exc:
+        logger.exception("get_license_utilization failed: auth error")
+        return {"error": str(exc), "error_code": "SN_AUTH_ERROR"}
+    except ServiceNowRateLimitError as exc:
+        logger.exception("get_license_utilization failed: rate limited")
+        return {"error": str(exc), "error_code": "SN_RATE_LIMIT"}
+    except ServiceNowError as exc:
+        logger.exception("get_license_utilization failed")
+        return {"error": str(exc), "error_code": getattr(exc, 'error_code', 'SN_QUERY_ERROR') or "SN_QUERY_ERROR"}
     except Exception as exc:
         logger.exception("get_license_utilization failed")
         return {"error": str(exc), "error_code": "SN_QUERY_ERROR"}

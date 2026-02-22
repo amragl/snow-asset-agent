@@ -10,6 +10,11 @@ from typing import Any
 
 from snow_asset_agent.client import ServiceNowClient
 from snow_asset_agent.config import get_config
+from snow_asset_agent.exceptions import (
+    ServiceNowAuthError,
+    ServiceNowError,
+    ServiceNowRateLimitError,
+)
 from snow_asset_agent.models import AssetContract
 
 logger = logging.getLogger(__name__)
@@ -51,6 +56,15 @@ def get_asset_contracts(
         records = _client.get_records(TABLE, query=query, limit=limit)
         contracts = [AssetContract.from_snow_record(r).model_dump(mode="json") for r in records]
         return {"contracts": contracts, "count": len(contracts)}
+    except ServiceNowAuthError as exc:
+        logger.exception("get_asset_contracts failed: auth error")
+        return {"error": str(exc), "error_code": "SN_AUTH_ERROR"}
+    except ServiceNowRateLimitError as exc:
+        logger.exception("get_asset_contracts failed: rate limited")
+        return {"error": str(exc), "error_code": "SN_RATE_LIMIT"}
+    except ServiceNowError as exc:
+        logger.exception("get_asset_contracts failed")
+        return {"error": str(exc), "error_code": getattr(exc, 'error_code', 'SN_QUERY_ERROR') or "SN_QUERY_ERROR"}
     except Exception as exc:
         logger.exception("get_asset_contracts failed")
         return {"error": str(exc), "error_code": "SN_QUERY_ERROR"}
