@@ -2,8 +2,6 @@
 
 MCP server for ServiceNow Asset Management -- lifecycle tracking, license compliance, hardware/software inventory, and cost optimization.
 
-Part of the **servicenow-suite** program. Managed by [Agent Forge](https://github.com/amragl/agent-forge).
-
 ## Architecture
 
 ```
